@@ -5,6 +5,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\StockController;
+use App\Http\Controllers\ExpenditureCategoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -34,6 +35,9 @@ Route::middleware('auth')->group(function () {
 
     // Resource Routes untuk Stock
     Route::resource('stocks', StockController::class);
+
+    // Expenditure Category Management
+    Route::resource('expenditure-categories', ExpenditureCategoryController::class)->except(['show']);
 
 });
 
