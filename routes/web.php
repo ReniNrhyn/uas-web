@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\StockController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -30,6 +31,9 @@ Route::middleware('auth')->group(function () {
 
     // Menu Management
     Route::resource('menus', MenuController::class);
+
+    // Resource Routes untuk Stock
+    Route::resource('stocks', StockController::class);
 
 });
 

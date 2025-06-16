@@ -26,7 +26,8 @@ class MenuController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return view('menus.index', compact('menus', 'search'));
+        return view('menus.index', compact('menus', 'search'))
+            ->with('i', ($menus->currentPage() - 1) * $menus->perPage());
     }
 
     /**
@@ -43,26 +44,33 @@ class MenuController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'menu_name' => 'required|string|max:100',
             'category_id' => 'required|exists:category_menus,category_id',
-            'price' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0|max:99999999.99',
             'description' => 'nullable|string',
             'stock' => 'required|integer|min:0',
-            'is_available' => 'boolean',
+            'is_available' => 'sometimes|boolean',
         ]);
 
         DB::beginTransaction();
         try {
-            $menuData = $request->all();
-            $menuData['is_available'] = $request->has('is_available') ? true : false;
+            $menu = Menu::create([
+                'menu_name' => $validated['menu_name'],
+                'category_id' => $validated['category_id'],
+                'price' => $validated['price'],
+                'description' => $validated['description'],
+                'stock' => $validated['stock'],
+                'is_available' => $request->has('is_available'),
+            ]);
 
-            Menu::create($menuData);
             DB::commit();
-            return redirect()->route('menus.index')->with('success', 'Menu created successfully.');
+            return redirect()->route('menus.index')
+                ->with('success', 'Menu "'.$menu->menu_name.'" has been added successfully!');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Failed to create menu. Error: '.$e->getMessage());
+            return back()->withInput()
+                ->with('error', 'Failed to create menu. Error: '.$e->getMessage());
         }
     }
 
@@ -77,9 +85,8 @@ class MenuController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(Menu $menu)
     {
-        $menu = Menu::findOrFail($id);
         $categories = CategoryMenu::orderBy('category_name')->get();
         return view('menus.edit', compact('menu', 'categories'));
     }
@@ -87,43 +94,51 @@ class MenuController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Menu $menu)
     {
-        $request->validate([
+        $validated = $request->validate([
             'menu_name' => 'required|string|max:100',
             'category_id' => 'required|exists:category_menus,category_id',
-            'price' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0|max:99999999.99',
             'description' => 'nullable|string',
             'stock' => 'required|integer|min:0',
-            'is_available' => 'boolean',
+            'is_available' => 'sometimes|boolean',
         ]);
 
         DB::beginTransaction();
         try {
-            $menu = Menu::findOrFail($id);
-            $menuData = $request->all();
-            $menuData['is_available'] = $request->has('is_available') ? true : false;
+            $menu->update([
+                'menu_name' => $validated['menu_name'],
+                'category_id' => $validated['category_id'],
+                'price' => $validated['price'],
+                'description' => $validated['description'],
+                'stock' => $validated['stock'],
+                'is_available' => $request->has('is_available'),
+            ]);
 
-            $menu->update($menuData);
             DB::commit();
-            return redirect()->route('menus.index')->with('success', 'Menu updated successfully.');
+            return redirect()->route('menus.index')
+                ->with('success', 'Menu "'.$menu->menu_name.'" has been updated successfully!');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Failed to update menu. Error: '.$e->getMessage());
+            return back()->withInput()
+                ->with('error', 'Failed to update menu. Error: '.$e->getMessage());
         }
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Menu $menu)
     {
         DB::beginTransaction();
         try {
-            $menu = Menu::findOrFail($id);
+            $menuName = $menu->menu_name;
             $menu->delete();
+
             DB::commit();
-            return redirect()->route('menus.index')->with('success', 'Menu deleted successfully.');
+            return redirect()->route('menus.index')
+                ->with('success', 'Menu "'.$menuName.'" has been deleted successfully!');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to delete menu. Error: '.$e->getMessage());
