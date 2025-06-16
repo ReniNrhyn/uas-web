@@ -6,6 +6,8 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\ExpenditureCategoryController;
+use App\Http\Controllers\TransactionController;
+use App\Models\Transaction;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -38,6 +40,12 @@ Route::middleware('auth')->group(function () {
 
     // Expenditure Category Management
     Route::resource('expenditure-categories', ExpenditureCategoryController::class)->except(['show']);
+
+    // Transaction Routes
+    Route::resource('transactions', TransactionController::class)->except(['show']);
+        // Additional route for showing transaction details
+    Route::get('transactions/{transaction}', [TransactionController::class, 'show'])
+        ->name('transactions.show');
 
 });
 
