@@ -18,7 +18,17 @@
                 </div>
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.index')">
-                        {{ __('User Management') }}
+                        {{ __('Users Management') }}
+                    </x-nav-link>
+                </div>
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    <x-nav-link :href="route('category_menus.index')" :active="request()->routeIs('categorymenus.index')">
+                        {{ __('Category Menu') }}
+                    </x-nav-link>
+                </div>
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    <x-nav-link :href="route('menus.index')" :active="request()->routeIs('menus.index')">
+                        {{ __('Menu Management') }}
                     </x-nav-link>
                 </div>
             </div>
