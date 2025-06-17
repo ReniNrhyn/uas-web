@@ -3,11 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Transaction;
-use App\Models\TransactionDetail;
-use App\Models\User;
-use App\Models\Menu;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class TransactionController extends Controller
 {
@@ -16,15 +14,11 @@ class TransactionController extends Controller
      */
     public function index()
     {
-        $transactions = Transaction::with(['user', 'details.menu'])
-            ->when(request()->search, function ($query) {
-                $query->whereHas('user', function ($q) {
-                    $q->where('name', 'like', '%' . request()->search . '%');
-                })
-                ->orWhere('transaction_id', 'like', '%' . request()->search . '%');
-            })
-            ->orderBy('date', 'desc')
-            ->paginate(10);
+        $transactions = Transaction::when(request()->search, function ($query) {
+            $query->where('customer_name', 'like', '%' . request()->search . '%');
+        })
+        ->orderBy('date', 'desc')
+        ->paginate(10);
 
         return view('transactions.index', compact('transactions'))
             ->with('i', (request()->input('page', 1) - 1) * 10);
@@ -35,9 +29,7 @@ class TransactionController extends Controller
      */
     public function create()
     {
-        $users = User::all();
-        $menus = Menu::all();
-        return view('transactions.create', compact('users', 'menus'));
+        return view('transactions.create');
     }
 
     /**
@@ -46,39 +38,28 @@ class TransactionController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'user_id' => 'required|exists:users,id',
+            'customer_name' => 'required|string|max:255',
             'date' => 'required|date',
+            'total_price' => 'required|numeric|min:0',
             'payment_method' => 'required|string',
-            'items' => 'required|array|min:1',
-            'items.*.menu_id' => 'required|exists:menus,menu_id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'total_price' => 'required|numeric|min:0'
+            'status' => 'required|string'
         ]);
 
         DB::beginTransaction();
         try {
-            // Create transaction
-            $transaction = Transaction::create([
-                'user_id' => $request->user_id,
+            $transaction = new Transaction([
+                'customer_name' => $request->customer_name,
                 'date' => $request->date,
+                'total_price' => $request->total_price,
                 'payment_method' => $request->payment_method,
-                'total_price' => $request->total_price
+                'status' => $request->status
             ]);
 
-            // Create transaction details
-            foreach ($request->items as $item) {
-                $menu = Menu::find($item['menu_id']);
-                TransactionDetail::create([
-                    'transaction_id' => $transaction->transaction_id,
-                    'menu_id' => $item['menu_id'],
-                    'quantity' => $item['quantity'],
-                    'subtotal' => $menu->price * $item['quantity']
-                ]);
-            }
+            $transaction->save();
 
             DB::commit();
             return redirect()->route('transactions.index')
-                ->with('success', 'Transaction #'.$transaction->transaction_id.' has been created successfully!');
+                ->with('success', 'Transaction for '.$transaction->customer_name.' has been added successfully!');
         } catch (\Throwable $th) {
             DB::rollBack();
             return back()->with('error', $th->getMessage());
@@ -88,67 +69,67 @@ class TransactionController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show(string $id)
     {
-        $transaction = Transaction::with(['user', 'details.menu'])->findOrFail($id);
-        return view('transactions.show', compact('transaction'));
+        //
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit($id)
+    public function edit(Transaction $transaction)
     {
-        $transaction = Transaction::with(['details'])->findOrFail($id);
-        $users = User::all();
-        $menus = Menu::all();
-        return view('transactions.edit', compact('transaction', 'users', 'menus'));
+        return view('transactions.edit', compact('transaction'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, Transaction $transaction)
     {
+        // Batas waktu edit (2 jam setelah transaksi)
+        $editDeadline = $transaction->created_at->addHours(2);
+
+        if (now()->gt($editDeadline)) {
+            return back()->with('error', 'Transaksi hanya bisa diedit dalam 2 jam setelah dibuat.');
+        }
+
         $request->validate([
-            'user_id' => 'required|exists:users,id',
+            'customer_name' => 'required|string|max:255',
             'date' => 'required|date',
+            'total_price' => 'required|numeric|min:0',
             'payment_method' => 'required|string',
-            'items' => 'required|array|min:1',
-            'items.*.menu_id' => 'required|exists:menus,menu_id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'total_price' => 'required|numeric|min:0'
+            'status' => 'required|string'
         ]);
 
         DB::beginTransaction();
-        try {
-            $transaction = Transaction::findOrFail($id);
+        // try {
+        //     $transaction->customer_name = $request->customer_name;
+        //     $transaction->date = $request->date;
+        //     $transaction->total_price = $request->total_price;
+        //     $transaction->payment_method = $request->payment_method;
+        //     $transaction->status = $request->status;
 
-            // Update transaction
-            $transaction->update([
-                'user_id' => $request->user_id,
-                'date' => $request->date,
-                'payment_method' => $request->payment_method,
-                'total_price' => $request->total_price
-            ]);
+        //     $transaction->save();
 
-            // Delete existing details
-            $transaction->details()->delete();
-
-            // Create new transaction details
-            foreach ($request->items as $item) {
-                $menu = Menu::find($item['menu_id']);
-                TransactionDetail::create([
-                    'transaction_id' => $transaction->transaction_id,
-                    'menu_id' => $item['menu_id'],
-                    'quantity' => $item['quantity'],
-                    'subtotal' => $menu->price * $item['quantity']
-                ]);
+        //     DB::commit();
+        //     return redirect()->route('transactions.index')
+        //         ->with('success', 'Transaction for '.$transaction->customer_name.' has been updated successfully!');
+        // } catch (\Throwable $th) {
+        //     DB::rollBack();
+        //     return back()->with('error', $th->getMessage());
+        // }
+                try {
+            // Hanya boleh edit jika status belum completed
+            if ($transaction->status === 'completed') {
+                return back()->with('error', 'Transaksi yang sudah completed tidak bisa diedit.');
             }
+
+            $transaction->update($request->all());
 
             DB::commit();
             return redirect()->route('transactions.index')
-                ->with('success', 'Transaction #'.$transaction->transaction_id.' has been updated successfully!');
+                ->with('success', 'Transaksi berhasil diperbarui!');
         } catch (\Throwable $th) {
             DB::rollBack();
             return back()->with('error', $th->getMessage());
@@ -158,25 +139,43 @@ class TransactionController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
+    public function destroy(Transaction $transaction)
     {
+                // Batas waktu delete (1 jam setelah transaksi)
+        $deleteDeadline = $transaction->created_at->addHour();
+
+        if (now()->gt($deleteDeadline)) {
+            return back()->with('error', 'Transaksi hanya bisa dihapus dalam 1 jam setelah dibuat.');
+        }
+
         DB::beginTransaction();
-        try {
-            $transaction = Transaction::findOrFail($id);
-            $transactionId = $transaction->transaction_id;
+        // try {
+        //     $customerName = $transaction->customer_name;
+        //     $transaction->delete();
 
-            // Delete transaction details first
-            $transaction->details()->delete();
+        //     DB::commit();
+        //     return redirect()->route('transactions.index')
+        //         ->with('success', 'Transaction for '.$customerName.' has been deleted successfully!');
+        // } catch (\Throwable $th) {
+        //     DB::rollBack();
+        //     return back()->with('error', $th->getMessage());
+        // }
 
-            // Then delete the transaction
+                try {
+            // Hanya boleh delete jika status belum completed
+            if ($transaction->status === 'completed') {
+                return back()->with('error', 'Transaksi yang sudah completed tidak bisa dihapus.');
+            }
+
             $transaction->delete();
 
             DB::commit();
             return redirect()->route('transactions.index')
-                ->with('success', 'Transaction #'.$transactionId.' has been deleted successfully!');
+                ->with('success', 'Transaksi berhasil dihapus!');
         } catch (\Throwable $th) {
             DB::rollBack();
             return back()->with('error', $th->getMessage());
         }
+
     }
 }

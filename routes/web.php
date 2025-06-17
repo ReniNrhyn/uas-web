@@ -43,9 +43,6 @@ Route::middleware('auth')->group(function () {
 
     // Transaction Routes
     Route::resource('transactions', TransactionController::class)->except(['show']);
-        // Additional route for showing transaction details
-    Route::get('transactions/{transaction}', [TransactionController::class, 'show'])
-        ->name('transactions.show');
 
 });
 

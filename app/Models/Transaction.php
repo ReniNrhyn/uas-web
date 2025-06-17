@@ -9,16 +9,43 @@ class Transaction extends Model
 {
     use HasFactory;
 
+    /**
+     * The primary key associated with the table.
+     *
+     * @var string
+     */
     protected $primaryKey = 'transaction_id';
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
     protected $fillable = [
         'customer_name',
         'date',
         'total_price',
-        'payment_method'
+        'payment_method',
+        'status'
     ];
 
-    public function details()
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'date' => 'date',
+        'total_price' => 'decimal:2',
+    ];
+
+    /**
+     * Get the formatted total price with currency symbol.
+     *
+     * @return string
+     */
+    public function getFormattedTotalPriceAttribute()
     {
-        return $this->hasMany(TransactionDetail::class, 'transaction_id');
+        return 'Rp ' . number_format($this->total_price, 2, ',', '.');
     }
 }

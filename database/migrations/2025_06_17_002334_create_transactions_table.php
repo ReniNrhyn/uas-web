@@ -12,12 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('transactions', function (Blueprint $table) {
-            $table->id('transaction_id');
-            $table->string('customer_name'); // manual input nama
+            $table->id('transaction_id'); // Primary key
+            $table->string('customer_name');
             $table->date('date');
-            $table->decimal('total_price', 10, 2);
+            $table->decimal('total_price', 10, 2); // 10 digit total, 2 digit decimal
             $table->string('payment_method');
-            $table->timestamps();
+            $table->string('status')->default('pending'); // default status pending
+            $table->timestamps(); // created_at dan updated_at
         });
     }
 
