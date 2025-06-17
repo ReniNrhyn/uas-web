@@ -7,7 +7,7 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\ExpenditureCategoryController;
 use App\Http\Controllers\TransactionController;
-use App\Models\Transaction;
+use App\Http\Controllers\DetailTransactionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -43,6 +43,16 @@ Route::middleware('auth')->group(function () {
 
     // Transaction Routes
     Route::resource('transactions', TransactionController::class)->except(['show']);
+
+    // Detail Transaction Routes
+    Route::resource('detail_transactions', DetailTransactionController::class)->except(['show']);
+
+    // Nested Routes untuk Detail Transaction dalam Transaction
+    Route::prefix('transactions/{transaction}')->group(function () {
+        Route::get('details', [DetailTransactionController::class, 'indexByTransaction'])->name('transactions.details.index');
+        Route::get('details/create', [DetailTransactionController::class, 'createForTransaction'])->name('transactions.details.create');
+        Route::post('details', [DetailTransactionController::class, 'storeForTransaction'])->name('transactions.details.store');
+    });
 
 });
 

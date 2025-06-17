@@ -48,4 +48,11 @@ class Transaction extends Model
     {
         return 'Rp ' . number_format($this->total_price, 2, ',', '.');
     }
+
+    // Tambahkan method ini di Transaction model
+    public function details()
+    {
+        return $this->hasMany(DetailTransaction::class, 'transaction_id');
+    }
+
 }

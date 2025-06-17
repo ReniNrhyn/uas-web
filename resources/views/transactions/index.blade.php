@@ -29,7 +29,7 @@
                                     <th scope="col" class="px-6 py-3 text-center">NO</th>
                                     <th scope="col" class="px-6 py-3 text-center">Customer</th>
                                     <th scope="col" class="px-6 py-3 text-center">Date</th>
-                                    <th scope="col" class="px-6 py-3 text-center">Amount</th>
+                                    <th scope="col" class="px-6 py-3 text-center">Total</th>
                                     <th scope="col" class="px-6 py-3 text-center">Payment</th>
                                     <th scope="col" class="px-6 py-3 text-center">Status</th>
                                     <th scope="col" class="px-6 py-3 text-center">Actions</th>
